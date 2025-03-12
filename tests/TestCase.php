@@ -2,12 +2,11 @@
 
 namespace WillVincent\LaravelUnique\Tests;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Orchestra\Testbench\TestCase as Orchestra;
 use WillVincent\LaravelUnique\LaravelUniqueServiceProvider;
-use function Orchestra\Testbench\workbench_path;
 
+use function Orchestra\Testbench\workbench_path;
 
 class TestCase extends Orchestra
 {

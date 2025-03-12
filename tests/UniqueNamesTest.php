@@ -44,7 +44,8 @@ it('makes name unique if creating another duplicate', function () {
 });
 
 it('uses custom suffix format', function () {
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected string $uniqueSuffixFormat = '-{n}';
     };
     $model->fill(['name' => 'Foo', 'organization_id' => 1])->save();
@@ -54,11 +55,13 @@ it('uses custom suffix format', function () {
 });
 
 it('uses custom value generator', function () {
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected string $uniqueValueGenerator = 'generateUniqueName';
+
         public function generateUniqueName($base, $constraints): string
         {
-            return $base . '-' . \Illuminate\Support\Str::random(5);
+            return $base.'-'.\Illuminate\Support\Str::random(5);
         }
     };
     $model::create(['name' => 'Foo', 'organization_id' => 1]);
@@ -67,7 +70,8 @@ it('uses custom value generator', function () {
 });
 
 it('handles no constraints', function () {
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected $constraintFields = [];
     };
     $model->fill(['name' => 'Foo'])->save();
@@ -76,9 +80,12 @@ it('handles no constraints', function () {
 });
 
 it('defaults to name if uniqueField not set', function () {
-    $model = new class extends Model {
+    $model = new class extends Model
+    {
         use \WillVincent\LaravelUnique\HasUniqueNames;
+
         protected $table = 'items';
+
         protected $fillable = ['name', 'organization_id'];
     };
     $model->fill(['name' => 'Foo', 'organization_id' => 1])->save();
@@ -91,32 +98,35 @@ it('enforces uniqueness with multiple constraints', function () {
     Item::create([
         'name' => 'Foo',
         'organization_id' => 1,
-        'department_id' => 1
+        'department_id' => 1,
     ]);
     $item2 = Item::create([
         'name' => 'Foo',
         'organization_id' => 1,
-        'department_id' => 2
+        'department_id' => 2,
     ]);
     expect($item2->name)->toBe('Foo'); // Different dept, same org: allowed
 
     $item3 = Item::create([
         'name' => 'Foo',
         'organization_id' => 1,
-        'department_id' => 1
+        'department_id' => 1,
     ]);
     expect($item3->name)->toBe('Foo (1)'); // Same org and dept: unique suffix
 
     $item4 = Item::create([
         'name' => 'Foo',
         'organization_id' => 2,
-        'department_id' => 3
+        'department_id' => 3,
     ]);
     expect($item4->name)->toBe('Foo'); // Different org: allowed
 });
 
 it('enforces global uniqueness with no constraints', function () {
-    $model = new class extends Item { protected $constraintFields = []; };
+    $model = new class extends Item
+    {
+        protected $constraintFields = [];
+    };
     $model->fill(['name' => 'Foo'])->save();
     $second = $model->newInstance(['name' => 'Foo']);
     $second->save();
@@ -169,30 +179,36 @@ it('ensures unique names under sequential load', function () {
 });
 
 it('uses custom generator with multiple constraints', function () {
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected $constraintFields = ['organization_id', 'department_id'];
+
         protected $uniqueValueGenerator = 'generateUniqueName';
-        public function generateUniqueName($base, $constraints) {
-            return $base . '-' . $constraints['organization_id'] . '-' . $constraints['department_id'];
+
+        public function generateUniqueName($base, $constraints)
+        {
+            return $base.'-'.$constraints['organization_id'].'-'.$constraints['department_id'];
         }
     };
 
     $model::create(['name' => 'Foo', 'organization_id' => 1, 'department_id' => 1]);
     $second = $model->newInstance(['name' => 'Foo', 'organization_id' => 1, 'department_id' => 1]);
     $second->save();
-    expect($second->name)->toBe("Foo-1-1");
+    expect($second->name)->toBe('Foo-1-1');
 });
 
 it('uses a callable generator', function () {
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected $constraintFields = ['organization_id', 'department_id'];
+
         protected $uniqueValueGenerator;
 
         public function __construct()
         {
             parent::__construct();
             $this->uniqueValueGenerator = function (string $base, array $constraints, int $attempts) {
-                return $base . '-' . $constraints['organization_id'] . '-' . $constraints['department_id'];
+                return $base.'-'.$constraints['organization_id'].'-'.$constraints['department_id'];
             };
         }
     };
@@ -200,13 +216,16 @@ it('uses a callable generator', function () {
     $model::create(['name' => 'Foo', 'organization_id' => 1, 'department_id' => 1]);
     $second = $model->newInstance(['name' => 'Foo', 'organization_id' => 1, 'department_id' => 1]);
     $second->save();
-    expect($second->name)->toBe("Foo-1-1");
+    expect($second->name)->toBe('Foo-1-1');
 });
 
 it('throws an exception if custom generator isn\'t a string or callable', function () {
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected $table = 'items'; // Ensure table is explicitly set if needed
+
         protected $constraintFields = ['organization_id', 'department_id'];
+
         protected $uniqueValueGenerator = []; // Invalid type
     };
 
@@ -219,8 +238,10 @@ it('throws an exception if custom generator isn\'t a string or callable', functi
 });
 
 it('throws and exception if the suffix format is missing {n}', function () {
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected $table = 'items'; // Ensure table is explicitly set if needed
+
         protected $uniqueSuffixFormat = 'meh';
     };
 
@@ -233,12 +254,17 @@ it('throws and exception if the suffix format is missing {n}', function () {
 });
 
 it('limits maximum attempts', function () {
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected $table = 'items'; // Explicitly set the table
+
         protected $constraintFields = ['organization_id'];
+
         protected $uniqueValueGenerator = 'generateUniqueName';
-        public function generateUniqueName($base, $constraints) {
-            return $base . '-' . $constraints['organization_id'];
+
+        public function generateUniqueName($base, $constraints)
+        {
+            return $base.'-'.$constraints['organization_id'];
         }
     };
 
@@ -269,15 +295,15 @@ it('performs well with large datasets', function () {
     for ($x = 0; $x < $iterations; $x++) {
         $name = 'Foo';
         if ($x > 0) {
-            $name = 'Foo (' . $x .')';
+            $name = 'Foo ('.$x.')';
         }
         $items[] = $name;
     }
 
     $chunks = collect($items)->chunk(1000);
     $chunks->map(function ($chunk) {
-        DB::statement('INSERT INTO items (name, organization_id) VALUES '. implode(',', array_fill(0, $chunk->count(), '(?,?)')),
-          $chunk->flatMap(fn ($item) => [ $item, 1 ])->toArray());
+        DB::statement('INSERT INTO items (name, organization_id) VALUES '.implode(',', array_fill(0, $chunk->count(), '(?,?)')),
+            $chunk->flatMap(fn ($item) => [$item, 1])->toArray());
     });
 
     $start = microtime(true);
@@ -291,16 +317,19 @@ it('retries with callable generator when initial value exists', function () {
     Item::create(['name' => 'Foo', 'organization_id' => 1]);
     Item::create(['name' => 'Foo-conflict', 'organization_id' => 1]);
 
-    $model = new class extends Item {
+    $model = new class extends Item
+    {
         protected $table = 'items';
+
         protected $constraintFields = ['organization_id'];
+
         protected $uniqueValueGenerator;
 
         public function __construct()
         {
             parent::__construct();
             $this->uniqueValueGenerator = function (string $base, array $constraints, int $attempt) {
-                return $attempt === 0 ? $base . '-conflict' : $base . '-unique-' . $attempt;
+                return $attempt === 0 ? $base.'-conflict' : $base.'-unique-'.$attempt;
             };
         }
     };
@@ -375,11 +404,12 @@ it('ignores soft-delete logic when the model doesn\'t support soft deletes', fun
     // Set config to include trashed records
     config(['unique_names.soft_delete' => true]);
 
-    $model = new class extends Model {
-
+    $model = new class extends Model
+    {
         use \WillVincent\LaravelUnique\HasUniqueNames;
 
         protected $table = 'items';
+
         protected $constraintFields = ['organization_id'];
 
         protected $fillable = ['name', 'organization_id'];
@@ -392,7 +422,6 @@ it('ignores soft-delete logic when the model doesn\'t support soft deletes', fun
 
     // Create a new item with the same name
     $newItem = $model::create(['name' => 'Foo', 'organization_id' => 1]);
-
 
     expect($newItem->name)->toBe('Foo');
 });

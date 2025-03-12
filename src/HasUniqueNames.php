@@ -9,8 +9,10 @@ use Exception;
  * @method static where(array $constraintFields)
  * @method static query()
  */
-trait HasUniqueNames {
+trait HasUniqueNames
+{
     public static bool $uniqueIncludesTrashed = false;
+
     /**
      * Boot the trait, hooking into the saving event.
      */
@@ -32,7 +34,7 @@ trait HasUniqueNames {
                     $model->getConstraintValues($constraintFields),
                     $model->id
                 );
-            } elseif (!$model->exists) {
+            } elseif (! $model->exists) {
                 $model->{$uniqueField} = $model->getUniqueValue(
                     $uniqueField,
                     $constraintFields,
@@ -46,7 +48,6 @@ trait HasUniqueNames {
     /**
      * Get the values of the constraint fields.
      *
-     * @param array $constraintFields
      * @return array<string>
      */
     public function getConstraintValues(array $constraintFields): array
@@ -55,18 +56,12 @@ trait HasUniqueNames {
         foreach ($constraintFields as $field) {
             $values[$field] = $this->{$field};
         }
+
         return $values;
     }
 
     /**
      * Generate a unique value for the specified field.
-     *
-     * @param string $uniqueField
-     * @param array $constraintFields
-     * @param string $value
-     * @param array $constraintValues
-     * @param mixed $exclude_id
-     * @return string
      */
     public function getUniqueValue(string $uniqueField, array $constraintFields, string $value, array $constraintValues, mixed $exclude_id = null): string
     {
@@ -81,7 +76,7 @@ trait HasUniqueNames {
         if ($exclude_id) {
             $query->where('id', '!=', $exclude_id);
         }
-        if (!$query->exists()) {
+        if (! $query->exists()) {
             return $value; // Use original value if it doesn’t exist
         }
 
@@ -113,7 +108,7 @@ trait HasUniqueNames {
             }
 
             if ($attempts > config('unique_names.max_attempts', 10)) {
-                throw new Exception('Unable to generate a unique value after ' . config('unique_names.max_attempts', 10) . ' attempts');
+                throw new Exception('Unable to generate a unique value after '.config('unique_names.max_attempts', 10).' attempts');
             }
 
             return $newValue;
@@ -122,7 +117,7 @@ trait HasUniqueNames {
         // Default suffix-based logic
         $suffixFormat = $this->uniqueSuffixFormat ?? config('unique_names.suffix_format', ' ({n})');
         $suffixRegex = str_replace('\{n\}', '(\d+)', preg_quote($suffixFormat, '/'));
-        $fullRegex = '/^(.*)' . $suffixRegex . '$/';
+        $fullRegex = '/^(.*)'.$suffixRegex.'$/';
         $pos = strpos($suffixFormat, '{n}');
         if ($pos === false) {
             throw new Exception('uniqueSuffixFormat must contain {n}');
@@ -130,7 +125,7 @@ trait HasUniqueNames {
         $separator = substr($suffixFormat, 0, $pos);
 
         $base = preg_match($fullRegex, $value, $matches) ? $matches[1] : $value;
-        $likePattern = $base . $separator . '%';
+        $likePattern = $base.$separator.'%';
 
         $existingQuery = self::query();
         $existingQuery->when(static::$uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
@@ -152,17 +147,17 @@ trait HasUniqueNames {
         }
         foreach ($existingValues as $existingValue) {
             if ($existingValue !== $base && preg_match($fullRegex, $existingValue, $matches)) {
-                $numbers[] = (int)$matches[2];
+                $numbers[] = (int) $matches[2];
             }
         }
 
         $maxN = $numbers ? max($numbers) : 0;
         $nextN = $maxN + 1;
-        $newValue = $base . str_replace('{n}', $nextN, $suffixFormat);
+        $newValue = $base.str_replace('{n}', $nextN, $suffixFormat);
 
         while (self::where($constraintFields)->where($uniqueField, $newValue)->exists()) {
             $nextN++;
-            $newValue = $base . str_replace('{n}', $nextN, $suffixFormat);
+            $newValue = $base.str_replace('{n}', $nextN, $suffixFormat);
         }
 
         return $newValue;

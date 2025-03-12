@@ -11,6 +11,7 @@ class Item extends Model
     use HasUniqueNames, SoftDeletes;
 
     protected $table = 'items';
+
     protected $fillable = [
         'name',
         'organization_id',
