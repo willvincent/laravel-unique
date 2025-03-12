@@ -21,13 +21,12 @@
         "illuminate/contracts": "^10.0||^11.0||^12.0"
     },
     "require-dev": {
-        "larastan/larastan": "^2.9||^3.0",
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.1.1||^7.10.0",
         "orchestra/testbench": "^10.0.0||^9.0.0||^8.22.0",
-        "pestphp/pest": "^2.0||^3.0",
-        "pestphp/pest-plugin-arch": "^2.0||^3.0",
-        "pestphp/pest-plugin-laravel": "^2.0||^3.0"
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-arch": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0"
     },
     "autoload": {
         "psr-4": {
