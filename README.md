@@ -193,7 +193,7 @@ The trait enforces uniqueness at the application level. For data integrity, espe
 
 ## Testing
 
-The package includes a test suite covering 93% of the code, testing:
+The package includes a test suite with over 97% coverage of the code, testing:
 
 - Uniqueness on create and update
 - Suffix formats
