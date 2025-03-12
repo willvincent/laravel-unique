@@ -134,7 +134,7 @@ trait HasUniqueNames
         }
         $existingQuery->where(function ($query) use ($uniqueField, $base, $likePattern) {
             $query->where($uniqueField, $base)
-                ->orWhereLike($uniqueField, $likePattern);
+                ->orWhere($uniqueField, 'like', $likePattern);
         });
         if ($exclude_id) {
             $existingQuery->where('id', '!=', $exclude_id);
