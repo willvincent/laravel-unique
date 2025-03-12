@@ -215,14 +215,6 @@ View or contribute to the package on GitHub: [willvincent/laravel-unique](https:
 
 See [CHANGELOG](CHANGELOG.md) for recent updates.
 
-## Contributing
-
-See [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Review [our security policy](../../security/policy) to report issues.
-
 ## Credits
 
 - [Will Vincent](https://github.com/willvincent)
