@@ -201,9 +201,7 @@ it('uses a callable generator', function () {
     $model = new class extends Item
     {
         protected $constraintFields = ['organization_id', 'department_id'];
-
         protected $uniqueValueGenerator;
-
         public function __construct()
         {
             parent::__construct();

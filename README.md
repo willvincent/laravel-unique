@@ -160,9 +160,13 @@ public function generateUniqueSlug(string $base, array $constraints, ?int $attem
 **Callable:**
 
 ```php
-protected $uniqueValueGenerator = function (string $base, array $constraints, int $attempt): string {
-    return $base . '-' . \Str::random(5);
-};
+protected $uniqueValueGenerator;
+
+public function __construct() {
+    $this->uniqueValueGenerator = function (string $base, array $constraints, int $attempt): string {
+        return $base . '-' . \Str::random(5);
+    };
+}
 ```
 
 - Input: `name: "baz"`
