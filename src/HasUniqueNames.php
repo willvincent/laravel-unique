@@ -11,7 +11,7 @@ use Exception;
  */
 trait HasUniqueNames
 {
-    public static bool $uniqueIncludesTrashed = false;
+    private bool $_uniqueIncludesTrashed = false;
 
     /**
      * Boot the trait, hooking into the saving event.
@@ -23,7 +23,7 @@ trait HasUniqueNames
             $constraintFields = $model->constraintFields ?? config('unique_names.constraint_fields', []);
 
             if (method_exists($model, 'bootSoftDeletes') && config('unique_names.soft_delete', false)) {
-                static::$uniqueIncludesTrashed = true;
+                $model->_uniqueIncludesTrashed = true;
             }
 
             if ($model->exists && $model->isDirty($uniqueField)) {
@@ -67,7 +67,7 @@ trait HasUniqueNames
     {
         // First, check if the original value is unique
         $query = self::query();
-        $query->when(static::$uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
+        $query->when($this->_uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
 
         foreach ($constraintFields as $field) {
             $query->where($field, $constraintValues[$field]);
@@ -94,7 +94,7 @@ trait HasUniqueNames
 
             $attempts = 1;
             $checkQuery = self::query();
-            $checkQuery->when(static::$uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
+            $checkQuery->when($this->_uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
             foreach ($constraintFields as $field) {
                 $checkQuery->where($field, $constraintValues[$field]);
             }
@@ -128,7 +128,7 @@ trait HasUniqueNames
         $likePattern = $base.$separator.'%';
 
         $existingQuery = self::query();
-        $existingQuery->when(static::$uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
+        $existingQuery->when($this->_uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
         foreach ($constraintFields as $field) {
             $existingQuery->where($field, $constraintValues[$field]);
         }

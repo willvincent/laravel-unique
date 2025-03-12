@@ -377,7 +377,6 @@ it('ignores soft-deleted records when uniqueIncludesTrashed is false', function 
     // Create and soft-delete an item
     $deletedItem = Item::create(['name' => 'Foo', 'organization_id' => 1]);
     $deletedItem->delete();
-    expect(Item::$uniqueIncludesTrashed)->toBeFalse();
 
     // Create a new item with the same name
     $newItem = Item::create(['name' => 'Foo', 'organization_id' => 1]);
@@ -394,11 +393,36 @@ it('includes soft-deleted records when uniqueIncludesTrashed is true', function 
     // Create and soft-delete an item
     $deletedItem = Item::create(['name' => 'Foo', 'organization_id' => 1]);
     $deletedItem->delete();
-    expect(Item::$uniqueIncludesTrashed)->toBeTrue();
 
     // Create a new item with the same name
     $newItem = Item::create(['name' => 'Foo', 'organization_id' => 1]);
 
     // Assert the new item has a unique name
     expect($newItem->name)->toBe('Foo (1)');
+});
+
+it('ignores soft-delete logic when the model doesn\'t support soft deletes', function () {
+    // Set config to include trashed records
+    Config::set('unique_names.soft_delete', true);
+
+    $model = new class extends Model
+    {
+        use \WillVincent\LaravelUnique\HasUniqueNames;
+
+        protected $table = 'items';
+
+        protected $constraintFields = ['organization_id'];
+
+        protected $fillable = ['name', 'organization_id'];
+    };
+    expect(method_exists($model, 'bootSoftDeletes'))->toBeFalse();
+
+    // Create and soft-delete an item
+    $deletedItem = $model::create(['name' => 'Foo', 'organization_id' => 1]);
+    $deletedItem->delete();
+
+    // Create a new item with the same name
+    $newItem = $model::create(['name' => 'Foo', 'organization_id' => 1]);
+
+    expect($newItem->name)->toBe('Foo');
 });
