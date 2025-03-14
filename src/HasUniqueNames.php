@@ -65,6 +65,10 @@ trait HasUniqueNames
      */
     public function getUniqueValue(string $uniqueField, array $constraintFields, string $value, array $constraintValues, mixed $exclude_id = null): string
     {
+        if (config('unique_names.trim', true)) {
+            $uniqueField = trim($uniqueField);
+        }
+
         // First, check if the original value is unique
         $query = self::query();
         $query->when($this->_uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
