@@ -2,6 +2,12 @@
 
 All notable changes to `laravel-unique` will be documented in this file.
 
+## 1.2 - 2025-03-14
+
+### Bug fix
+
+- Constraint fields were being wrongly applied in one of the exists() checks.
+
 ## 1.1 - 2025-03-14
 
 ### Feature Addition
