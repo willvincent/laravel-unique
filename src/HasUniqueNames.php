@@ -159,7 +159,11 @@ trait HasUniqueNames
         $nextN = $maxN + 1;
         $newValue = $base.str_replace('{n}', $nextN, $suffixFormat);
 
-        while (self::where($constraintFields)->where($uniqueField, $newValue)->exists()) {
+        $query = self::query();
+        foreach ($constraintFields as $field) {
+            $query->where($field, $constraintValues[$field]);
+        }
+        while ($query->where($uniqueField, $newValue)->exists()) {
             $nextN++;
             $newValue = $base.str_replace('{n}', $nextN, $suffixFormat);
         }
