@@ -426,3 +426,20 @@ it('ignores soft-delete logic when the model doesn\'t support soft deletes', fun
 
     expect($newItem->name)->toBe('Foo');
 });
+
+it('trims whitespace before determining uniqueness', function () {
+    Item::create(['name' => 'Foo', 'organization_id' => 1]);
+    $item1 = Item::create(['name' => '  Foo   ', 'organization_id' => 1]);
+
+
+    expect($item1->name)->toBe('Foo (1)');
+});
+
+it('does not trim whitespace when trim setting is false', function () {
+    Config::set('unique_names.trim', false);
+    Item::create(['name' => 'Foo', 'organization_id' => 1]);
+    $item1 = Item::create(['name' => '  Foo   ', 'organization_id' => 1]);
+
+
+    expect($item1->name)->toBe('  Foo   ');
+});
