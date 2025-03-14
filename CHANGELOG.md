@@ -2,6 +2,13 @@
 
 All notable changes to `laravel-unique` will be documented in this file.
 
+## 1.1 - 2025-03-14
+
+### Feature Addition
+
+- Option to trim name values before checking uniqueness
+  This has the happy side effect of also trimming already unique values of leading/trailing whitespace too
+
 ## 1.0 - 2025-03-12
 
 ### Initial release 🎉
