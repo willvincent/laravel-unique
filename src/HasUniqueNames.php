@@ -3,6 +3,7 @@
 namespace WillVincent\LaravelUnique;
 
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @method static saving(\Closure $param)
@@ -22,9 +23,8 @@ trait HasUniqueNames
             $uniqueField = $model->uniqueField ?? config('unique_names.unique_field', 'name');
             $constraintFields = $model->constraintFields ?? config('unique_names.constraint_fields', []);
 
-            if (method_exists($model, 'bootSoftDeletes') && config('unique_names.soft_delete', false)) {
-                $model->_uniqueIncludesTrashed = true;
-            }
+            // Set _uniqueIncludesTrashed based on model capability and config
+            $model->_uniqueIncludesTrashed = method_exists($model, 'bootSoftDeletes') && config('unique_names.soft_delete', false);
 
             if ($model->exists && $model->isDirty($uniqueField)) {
                 $model->{$uniqueField} = $model->getUniqueValue(
@@ -61,6 +61,14 @@ trait HasUniqueNames
     }
 
     /**
+     * Get table name to enforce uniqueness upon.
+     */
+    protected function getUniqueTableName(): string
+    {
+        return $this->uniqueTableName ?? $this->getTable();
+    }
+
+    /**
      * Generate a unique value for the specified field.
      */
     public function getUniqueValue(string $uniqueField, array $constraintFields, string $value, array $constraintValues, mixed $exclude_id = null): string
@@ -69,9 +77,13 @@ trait HasUniqueNames
             $value = trim($value);
         }
 
-        // First, check if the original value is unique
-        $query = self::query();
-        $query->when($this->_uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
+        $table = $this->getUniqueTableName();
+        $query = DB::table($table);
+
+        // Apply soft delete filter if _uniqueIncludesTrashed is false
+        if (! $this->_uniqueIncludesTrashed) {
+            $query->whereNull("$table.deleted_at");
+        }
 
         foreach ($constraintFields as $field) {
             $query->where($field, $constraintValues[$field]);
@@ -80,14 +92,14 @@ trait HasUniqueNames
         if ($exclude_id) {
             $query->where('id', '!=', $exclude_id);
         }
+
         if (! $query->exists()) {
-            return $value; // Use original value if it doesn’t exist
+            return $value;
         }
 
         // If the original value exists, proceed with custom generator or default logic
         if (isset($this->uniqueValueGenerator)) {
             $generator = $this->uniqueValueGenerator;
-
             if (is_string($generator)) {
                 $newValue = $this->$generator($value, $constraintValues, 0);
             } elseif (is_callable($generator)) {
@@ -97,8 +109,10 @@ trait HasUniqueNames
             }
 
             $attempts = 1;
-            $checkQuery = self::query();
-            $checkQuery->when($this->_uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
+            $checkQuery = DB::table($table);
+            if (! $this->_uniqueIncludesTrashed) {
+                $checkQuery->whereNull("$table.deleted_at");
+            }
             foreach ($constraintFields as $field) {
                 $checkQuery->where($field, $constraintValues[$field]);
             }
@@ -131,8 +145,10 @@ trait HasUniqueNames
         $base = preg_match($fullRegex, $value, $matches) ? $matches[1] : $value;
         $likePattern = $base.$separator.'%';
 
-        $existingQuery = self::query();
-        $existingQuery->when($this->_uniqueIncludesTrashed, fn ($query) => $query->withTrashed());
+        $existingQuery = DB::table($table);
+        if (! $this->_uniqueIncludesTrashed) {
+            $existingQuery->whereNull("$table.deleted_at");
+        }
         foreach ($constraintFields as $field) {
             $existingQuery->where($field, $constraintValues[$field]);
         }
@@ -159,7 +175,10 @@ trait HasUniqueNames
         $nextN = $maxN + 1;
         $newValue = $base.str_replace('{n}', $nextN, $suffixFormat);
 
-        $query = self::query();
+        $query = DB::table($table);
+        if (! $this->_uniqueIncludesTrashed) {
+            $query->whereNull("$table.deleted_at");
+        }
         foreach ($constraintFields as $field) {
             $query->where($field, $constraintValues[$field]);
         }

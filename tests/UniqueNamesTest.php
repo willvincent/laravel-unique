@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use WillVincent\LaravelUnique\Tests\models\Item;
 
 uses(RefreshDatabase::class);
@@ -440,4 +442,189 @@ it('does not trim whitespace when trim setting is false', function () {
     $item1 = Item::create(['name' => '  Foo   ', 'organization_id' => 1]);
 
     expect($item1->name)->toBe('  Foo   ');
+});
+
+it('uses model default table when uniqueTableName is not set', function () {
+    // Create an item in the default items table
+    Item::create(['name' => 'Foo', 'organization_id' => 1]);
+
+    // Create another item with the same name
+    $item = Item::create(['name' => 'Foo', 'organization_id' => 1]);
+
+    // Verify uniqueness is enforced in the default items table
+    expect($item->name)->toBe('Foo (1)');
+    expect(Item::where('name', 'Foo (1)')->exists())->toBeTrue();
+});
+
+it('uses custom table when uniqueTableName is set', function () {
+    $model = new class extends Model
+    {
+        use \Illuminate\Database\Eloquent\SoftDeletes;
+        use \WillVincent\LaravelUnique\HasUniqueNames;
+
+        protected $table = 'custom_items';
+
+        protected $uniqueTableName = 'custom_items';
+
+        protected $fillable = ['name', 'organization_id'];
+    };
+
+    $model::create(['name' => 'Foo', 'organization_id' => 1]);
+    $item = $model::create(['name' => 'Foo', 'organization_id' => 1]);
+
+    expect($item->name)->toBe('Foo (1)'); // Duplicate in custom_items
+    expect(DB::table('custom_items')->where('name', 'Foo (1)')->exists())->toBeTrue();
+    expect(DB::table('items')->where('name', 'Foo')->exists())->toBeFalse();
+});
+
+it('enforces uniqueness independently across different tables', function () {
+    $defaultModel = new class extends Model
+    {
+        use \Illuminate\Database\Eloquent\SoftDeletes;
+        use \WillVincent\LaravelUnique\HasUniqueNames;
+
+        protected $table = 'items';
+
+        protected $fillable = ['name', 'organization_id'];
+    };
+
+    $customModel = new class extends Model
+    {
+        use \Illuminate\Database\Eloquent\SoftDeletes;
+        use \WillVincent\LaravelUnique\HasUniqueNames;
+
+        protected $table = 'custom_items';
+
+        protected $uniqueTableName = 'custom_items';
+
+        protected $fillable = ['name', 'organization_id'];
+    };
+
+    $defaultModel::create(['name' => 'Foo', 'organization_id' => 1]);
+    $customModel::create(['name' => 'Foo', 'organization_id' => 1]);
+
+    $defaultItem = $defaultModel::create(['name' => 'Foo', 'organization_id' => 1]);
+    $customItem = $customModel::create(['name' => 'Foo', 'organization_id' => 1]);
+
+    expect($defaultItem->name)->toBe('Foo (1)');
+    expect($customItem->name)->toBe('Foo (1)');
+    expect(DB::table('items')->where('name', 'Foo (1)')->exists())->toBeTrue();
+    expect(DB::table('custom_items')->where('name', 'Foo (1)')->exists())->toBeTrue();
+});
+
+it('works with custom table and multiple constraints', function () {
+    $model = new class extends Model
+    {
+        use \Illuminate\Database\Eloquent\SoftDeletes;
+        use \WillVincent\LaravelUnique\HasUniqueNames;
+
+        protected $table = 'custom_items';
+
+        protected $uniqueTableName = 'custom_items';
+
+        protected $constraintFields = ['organization_id', 'department_id'];
+
+        protected $fillable = ['name', 'organization_id', 'department_id'];
+    };
+
+    $model::create([
+        'name' => 'Foo',
+        'organization_id' => 1,
+        'department_id' => 1,
+    ]);
+    $item2 = $model::create([
+        'name' => 'Foo',
+        'organization_id' => 1,
+        'department_id' => 2,
+    ]);
+    $item3 = $model::create([
+        'name' => 'Foo',
+        'organization_id' => 1,
+        'department_id' => 1,
+    ]);
+
+    expect($item2->name)->toBe('Foo'); // Different department, no suffix
+    expect($item3->name)->toBe('Foo (1)'); // Same org and dept, suffix added
+    expect(DB::table('custom_items')->where('name', 'Foo (1)')->exists())->toBeTrue();
+});
+
+it('respects soft deletes in custom table when uniqueIncludesTrashed is true', function () {
+    Config::set('unique_names.soft_delete', true);
+
+    $model = new class extends Model
+    {
+        use \Illuminate\Database\Eloquent\SoftDeletes;
+        use \WillVincent\LaravelUnique\HasUniqueNames;
+
+        protected $table = 'custom_items';
+
+        protected $uniqueTableName = 'custom_items';
+
+        protected $fillable = ['name', 'organization_id'];
+    };
+
+    $deletedItem = $model::create(['name' => 'Foo', 'organization_id' => 1]);
+    $deletedItem->delete();
+
+    $newItem = $model::create(['name' => 'Foo', 'organization_id' => 1]);
+
+    expect($newItem->name)->toBe('Foo (1)'); // Soft-deleted 'Foo' considered
+    expect(DB::table('custom_items')->where('name', 'Foo (1)')->exists())->toBeTrue();
+});
+
+it('ignores soft deletes in custom table when uniqueIncludesTrashed is false', function () {
+    Config::set('unique_names.soft_delete', false);
+
+    $model = new class extends Model
+    {
+        use \Illuminate\Database\Eloquent\SoftDeletes;
+        use \WillVincent\LaravelUnique\HasUniqueNames;
+
+        protected $table = 'custom_items';
+
+        protected $uniqueTableName = 'custom_items';
+
+        protected $fillable = ['name', 'organization_id'];
+    };
+
+    $deletedItem = $model::create(['name' => 'Foo', 'organization_id' => 1]);
+    $deletedItem->delete();
+
+    $newItem = $model::create(['name' => 'Foo', 'organization_id' => 1]);
+
+    expect($newItem->name)->toBe('Foo'); // Soft-deleted 'Foo' ignored
+    expect(DB::table('custom_items')->where('name', 'Foo')->exists())->toBeTrue();
+});
+
+it('throws exception when custom table does not exist', function () {
+    // Define a model with a non-existent table
+    $model = new class extends Item
+    {
+        protected $uniqueTableName = 'non_existent_table';
+    };
+
+    // Expect an exception when trying to query a non-existent table
+    $this->expectException(\Illuminate\Database\QueryException::class);
+
+    $model::create(['name' => 'Foo', 'organization_id' => 1]);
+});
+
+it('throws exception when custom table lacks required columns', function () {
+    // Create a table without the name column
+    Schema::create('invalid_items', function (Blueprint $table) {
+        $table->id();
+        $table->unsignedBigInteger('organization_id')->nullable();
+        $table->timestamps();
+    });
+
+    // Define a model with the invalid table
+    $model = new class extends Item
+    {
+        protected $uniqueTableName = 'invalid_items';
+    };
+
+    // Expect an exception due to missing name column
+    $this->expectException(\Illuminate\Database\QueryException::class);
+
+    $model::create(['name' => 'Foo', 'organization_id' => 1]);
 });

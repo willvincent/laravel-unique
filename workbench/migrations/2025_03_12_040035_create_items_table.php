@@ -16,5 +16,14 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+
+        Schema::create('custom_items', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->unsignedBigInteger('organization_id')->nullable();
+            $table->unsignedBigInteger('department_id')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
     }
 };
