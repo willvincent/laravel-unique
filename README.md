@@ -7,7 +7,8 @@
 
 A trait for Laravel Eloquent models to ensure a field remains unique within specified constraints. 
 
-It offers flexible suffix formats or custom value generators, making it ideal for scenarios like unique names, slugs, or identifiers.
+It offers flexible suffix formats or custom value generators, making it ideal for scenarios like unique names,
+slugs, or identifiers.
 
 ## How It Works
 
@@ -18,7 +19,8 @@ already exists within the defined constraints (e.g., `organization_id`). If a du
 - On **create**, it generates a unique value.
 - On **update**, it only adjusts the field if it has changed (i.e., if it’s “dirty”).
 
-If a duplicate exists, the trait either appends a suffix (e.g., `Foo (1)`) or uses a custom generator to produce a unique value.
+If a duplicate exists, the trait either appends a suffix (e.g., `Foo (1)`) or uses a custom generator
+to produce a unique value.
 
 ## Features
 
@@ -102,12 +104,14 @@ class YourModel extends Model
 
 ### Configuration Options
 
-You can customize the trait’s behavior either in the `config/unique_names.php` file or by overriding properties in your model:
+You can customize the trait’s behavior either in the `config/unique_names.php` file or by
+overriding properties in your model:
 
 - **`uniqueField`**: The field to enforce uniqueness on (default: `'name'`).
 - **`constraintFields`**: Array of fields defining the uniqueness scope (default: `[]`).
 - **`uniqueSuffixFormat`**: Format for suffixes, with `{n}` as the number placeholder (default: `' ({n})'`).
 - **`uniqueValueGenerator`**: Optional custom generator (see below).
+- **`uniqueTableName`**: Optional alternate table to enforce uniqueness within (see below).
 
 Model properties take precedence over config file settings.
 
@@ -176,6 +180,53 @@ The generator receives the base value, constraint values, and the retry attempt,
 It retries up to `max_tries` times if the generated value isn’t unique, the first attempt will be 0, retries will
 be numbered 1 through your limit.
 
+### Using a Custom Unique Table
+
+By default, the `HasUniqueNames` trait checks for uniqueness in the model's primary table (e.g., `items`).
+However, you can specify a different table for uniqueness checks using the `$uniqueTableName` property.
+This is useful when your model saves to one table but needs to enforce uniqueness based on data in another table.
+It is also useful if you're updating data in a table that is relevant to your model, but not necessarily represented
+by a model itself; as an example subdomain records for multi-tenant applications.
+
+#### Example
+
+Suppose you have a model that saves to the `items` table but needs to ensure uniqueness based on records in
+a `legacy_items` table:
+
+```php
+use WillVincent\LaravelUnique\HasUniqueNames;
+
+class Item extends Model
+{
+    use HasUniqueNames;
+
+    protected $table = 'items'; // Model saves to 'items'
+    protected $uniqueTableName = 'legacy_items'; // Uniqueness checked in 'legacy_items'
+    protected $uniqueField = 'name';
+    protected $constraintFields = ['organization_id'];
+}
+```
+
+- When saving a new Item, the trait will check for duplicates in the legacy_items table (not items).
+- If a duplicate is found in legacy_items, it will append a suffix (e.g., "Foo (1)") or use a custom generator to
+  make the name unique.
+
+#### Important Notes:
+
+- The custom table (e.g., legacy_items) must have the same columns as specified in `$uniqueField` (e.g., name)
+  and `$constraintFields` (e.g., organization_id).
+- Soft delete behavior (if enabled) will respect the custom table's deleted_at column.
+
+#### Soft Deletes with Custom Tables
+
+If your model uses soft deletes and you’ve enabled unique_names.soft_delete in the config, the trait will consider
+soft-deleted records in the custom table based on the _uniqueIncludesTrashed setting:
+
+- When _uniqueIncludesTrashed is true, soft-deleted records in the custom table are included in uniqueness checks.
+- When false, they are ignored.
+
+This ensures consistent behavior whether using the model's primary table or a custom table.
+
 ## Advanced Configuration
 
 ### Custom Generator Details
@@ -185,11 +236,13 @@ The custom generator can be:
 - A **string**: The name of a method on the model.
 - A **callable**: An anonymous function or closure.
 
-If the generated value isn’t unique, the trait retries with increasing attempt counts until `max_tries` is reached, then throws an exception.
+If the generated value isn’t unique, the trait retries with increasing attempt counts until `max_tries` is reached,
+then throws an exception.
 
 ### Database Considerations
 
-The trait enforces uniqueness at the application level. For data integrity, especially in high-concurrency scenarios, consider adding database-level unique constraints (e.g., unique indexes) alongside this trait.
+The trait enforces uniqueness at the application level. For data integrity, especially in high-concurrency
+scenarios, consider adding database-level unique constraints (e.g., unique indexes) alongside this trait.
 
 ## Testing
 
