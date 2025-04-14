@@ -41,7 +41,7 @@ composer require willvincent/laravel-unique
 Publish the configuration file (optional) to customize defaults:
 
 ```bash
-php artisan vendor:publish --tag="laravel-unique-config"
+php artisan vendor:publish --provider="WillVincent\LaravelUnique\LaravelUniqueServiceProvider"
 ```
 
 Here’s the default configuration file (`config/unique_names.php`):
